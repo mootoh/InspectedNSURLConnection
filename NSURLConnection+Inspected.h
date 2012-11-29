@@ -13,5 +13,6 @@
  * wants to inspect what data is going on.
  */
 @interface NSURLConnection (Inspected)
-+ (void) setupSwizzling;
++ (void) setInspection:(BOOL)enabled;
++ (BOOL) inspectionEnabled;
 @end

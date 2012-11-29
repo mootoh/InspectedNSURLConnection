@@ -243,12 +243,14 @@ static NSMutableSet *s_delegates = nil;
 	}
 }
 
-+ (void) setupSwizzling
+static BOOL s_inspectionEnabled = NO;
+
++ (void) setInspection:(BOOL)enabled
 {
-	static BOOL initialized = NO;
-	if (initialized)
+	if (s_inspectionEnabled == enabled)
 		return;
-	initialized = YES;
+
+	s_inspectionEnabled = enabled;
 
 #define inspected_method(method) inspected_##method
 #define swizzle_class_method_wrap(method) [NSURLConnection swizzleClassMethod:@selector(method) to:@selector(inspected_method(method))]
@@ -264,6 +266,11 @@ static NSMutableSet *s_delegates = nil;
 #undef swizzle_method_wrap
 #undef swizzle_class_method_wrap
 #undef inspected_method
+}
+
++ (BOOL) inspectionEnabled
+{
+	return s_inspectionEnabled;
 }
 
 @end
