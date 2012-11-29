@@ -24,8 +24,8 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		3B1252BB1666DD5500C6A734 /* JRSwizzle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = JRSwizzle.h; sourceTree = "<group>"; };
-		3B1252BC1666DD5500C6A734 /* JRSwizzle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = JRSwizzle.m; sourceTree = "<group>"; };
+		3B1252BB1666DD5500C6A734 /* JRSwizzle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = JRSwizzle.h; path = ../../JRSwizzle/JRSwizzle.h; sourceTree = "<group>"; };
+		3B1252BC1666DD5500C6A734 /* JRSwizzle.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = JRSwizzle.m; path = ../../JRSwizzle/JRSwizzle.m; sourceTree = "<group>"; };
 		3B1252FE1666DD6600C6A734 /* NSURLConnection+Inspected.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = "NSURLConnection+Inspected.h"; path = "../../NSURLConnection+Inspected.h"; sourceTree = "<group>"; };
 		3B1252FF1666DD6600C6A734 /* NSURLConnection+Inspected.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; name = "NSURLConnection+Inspected.m"; path = "../../NSURLConnection+Inspected.m"; sourceTree = "<group>"; };
 		3BB58739166549A500A2F085 /* ReplaceWebConnection.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ReplaceWebConnection.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -64,16 +64,28 @@
 		3B1252BA1666DD5500C6A734 /* JRSwizzle */ = {
 			isa = PBXGroup;
 			children = (
-				3B1252BB1666DD5500C6A734 /* JRSwizzle.h */,
-				3B1252BC1666DD5500C6A734 /* JRSwizzle.m */,
 			);
 			name = JRSwizzle;
 			path = ../../JRSwizzle;
 			sourceTree = "<group>";
 		};
+		3B125367166701AB00C6A734 /* InspectedNSURLConnection */ = {
+			isa = PBXGroup;
+			children = (
+				3B1252FE1666DD6600C6A734 /* NSURLConnection+Inspected.h */,
+				3B1252FF1666DD6600C6A734 /* NSURLConnection+Inspected.m */,
+				3B1252BA1666DD5500C6A734 /* JRSwizzle */,
+				3B1252BB1666DD5500C6A734 /* JRSwizzle.h */,
+				3B1252BC1666DD5500C6A734 /* JRSwizzle.m */,
+			);
+			name = InspectedNSURLConnection;
+			path = ReplaceWebConnection;
+			sourceTree = "<group>";
+		};
 		3BB5872E166549A500A2F085 = {
 			isa = PBXGroup;
 			children = (
+				3B125367166701AB00C6A734 /* InspectedNSURLConnection */,
 				3BB58743166549A500A2F085 /* ReplaceWebConnection */,
 				3BB5873C166549A500A2F085 /* Frameworks */,
 				3BB5873A166549A500A2F085 /* Products */,
@@ -107,9 +119,6 @@
 				3BB58756166549A500A2F085 /* ViewController.m */,
 				3BB58758166549A500A2F085 /* ViewController_iPhone.xib */,
 				3BB5875B166549A500A2F085 /* ViewController_iPad.xib */,
-				3B1252FE1666DD6600C6A734 /* NSURLConnection+Inspected.h */,
-				3B1252FF1666DD6600C6A734 /* NSURLConnection+Inspected.m */,
-				3B1252BA1666DD5500C6A734 /* JRSwizzle */,
 				3BB58744166549A500A2F085 /* Supporting Files */,
 			);
 			path = ReplaceWebConnection;

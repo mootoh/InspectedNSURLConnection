@@ -31,10 +31,11 @@ static NSMutableSet *s_delegates = nil;
 @interface InspectedConnectionDelegate : NSObject <NSURLConnectionDelegate, NSURLConnectionDataDelegate>
 @property (nonatomic, strong) NSMutableData *received;
 @property (nonatomic, strong) id <NSURLConnectionDelegate> actualDelegate;
+@property (nonatomic, strong) NSURLResponse *response;
 @end
 
 @implementation InspectedConnectionDelegate
-@synthesize received, actualDelegate;
+@synthesize received, actualDelegate, response;
 
 - (id) initWithActualDelegate:(id <NSURLConnectionDelegate>)actual
 {
@@ -46,8 +47,18 @@ static NSMutableSet *s_delegates = nil;
 	return self;
 }
 
-- (void) cleanup
+- (void) cleanup:(NSError *)error
 {
+	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+	if (self.response)
+		userInfo[@"response"] = self.response;
+	if (self.received && self.received.length > 0)
+		userInfo[@"body"] = self.received;
+	if (error)
+		userInfo[@"error"] = error;
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:k_RECEIVED_RESPONSE object:nil userInfo:userInfo];
+
 	self.actualDelegate = nil;
 	[[NSURLConnection inspectedDelegates] removeObject:self];
 }
@@ -57,20 +68,18 @@ static NSMutableSet *s_delegates = nil;
 #pragma mark NSURLConnectionDelegate
 - (void)connection:(NSURLConnection *)connection didFailWithError:(NSError *)error
 {
-	NSLog(@"[InspectedConnectionDelegate:%@]: connection:didFailWithError: %@", connection.originalRequest.URL, error);
+	if ([self.actualDelegate respondsToSelector:@selector(connection:didFailWithError:)])
+		[self.actualDelegate connection:connection didFailWithError:error];
 
-	[self.actualDelegate connection:connection didFailWithError:error];
-	[self cleanup];
+	[self cleanup:error];
 }
 
 // ------------------------------------------------------------------------
 #pragma mark NSURLConnectionDataDelegate
 //
-- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)response
+- (void)connection:(NSURLConnection *)connection didReceiveResponse:(NSURLResponse *)aResponse
 {
-	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)response;
-	int statusCode = httpResponse ? httpResponse.statusCode : -1;
-	NSLog(@"[InspectedConnectionDelegate:%@]: connection:didReceiveResponse:] status code = %d", connection.originalRequest.URL, statusCode);
+	self.response = aResponse;
 
 	if ([self.actualDelegate respondsToSelector:@selector(connection:didReceiveResponse:)]) {
 		id <NSURLConnectionDataDelegate> actual = (id <NSURLConnectionDataDelegate>)self.actualDelegate;
@@ -80,7 +89,6 @@ static NSMutableSet *s_delegates = nil;
 
 - (void)connection:(NSURLConnection *)connection didReceiveData:(NSData *)data
 {
-	NSLog(@"[InspectedConnectionDelegate:%@]: connection:didReceiveData:", connection.originalRequest.URL);
 	[self.received appendData:data];
 
 	if ([self.actualDelegate respondsToSelector:@selector(connection:didReceiveData:)]) {
@@ -101,14 +109,12 @@ static NSMutableSet *s_delegates = nil;
 
 - (void)connectionDidFinishLoading:(NSURLConnection *)connection
 {
-	NSString *receivedString = [[NSString alloc] initWithData:self.received encoding:NSUTF8StringEncoding];
-	NSLog(@"[InspectedConnectionDelegate:%@]: connectionDidFinishLoading: %@", connection.originalRequest.URL, receivedString);
-
 	if ([self.actualDelegate respondsToSelector:@selector(connectionDidFinishLoading:)]) {
 		id <NSURLConnectionDataDelegate> actual = (id <NSURLConnectionDataDelegate>)self.actualDelegate;
 		[actual connectionDidFinishLoading:connection];
 	}
-	[self cleanup];
+
+	[self cleanup:nil];
 }
 
 - (NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request redirectResponse:(NSURLResponse *)redirectResponse
@@ -147,60 +153,45 @@ static NSMutableSet *s_delegates = nil;
 @end
 
 
-/**
- * NSURLRequest category for inspection
- */
-@implementation NSURLRequest (Detail)
-
-- (NSString *) dumpDetail
-{
-	NSString *detail = @"NSURLRequest detail: {\n";
-	detail = [detail stringByAppendingFormat:@"     URL: %@\n", self.URL];
-	detail = [detail stringByAppendingFormat:@"  Method: %@\n", self.HTTPMethod];
-	if (self.HTTPBody && [self.HTTPBody length] > 0) {
-		NSString *bodyString = [[NSString alloc] initWithData:self.HTTPBody encoding:NSUTF8StringEncoding];
-		if (bodyString)
-			detail = [detail stringByAppendingFormat:@"    Body: %@\n", bodyString];
-	}
-	detail = [detail stringByAppendingString:@"}"];
-	NSLog(@"%@", detail);
-	return detail;
-}
-
-@end
-
 @implementation NSURLConnection (Inspected)
 
 // ------------------------------------------------------------------------
 #pragma mark -
 #pragma mark Class method swizzling
 //
+
+#define postSendingRequestNotification [[NSNotificationCenter defaultCenter] postNotificationName:k_SENDING_REQUEST object:nil userInfo:@{@"request" : request}]
+
 + (NSData *)inspected_sendSynchronousRequest:(NSURLRequest *)request returningResponse:(NSURLResponse **)response error:(NSError **)error
 {
-	NSLog(@"NSURLConnection (Inspected) : sendSynchronousRequest:returningResponse:error:");
-	[request dumpDetail];
+	postSendingRequestNotification;
 
-	NSData *ret = [NSURLConnection inspected_sendSynchronousRequest:request returningResponse:response error:error];
-	NSHTTPURLResponse *httpResponse = (NSHTTPURLResponse *)*response;
-	NSLog(@"response = %d", httpResponse.statusCode);
-	return ret;
+	NSData *responseData = [NSURLConnection inspected_sendSynchronousRequest:request returningResponse:response error:error];
+
+	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
+	if (*response)
+		userInfo[@"response"] = *response;
+	if (responseData)
+		userInfo[@"body"] = responseData;
+	if (*error)
+		userInfo[@"error"] = *error;
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:k_RECEIVED_RESPONSE object:nil userInfo:userInfo];
+
+	return responseData;
 }
 
 + (NSURLConnection *)inspected_connectionWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate
 {
-	NSLog(@"NSURLConnection (Inspected) : connectionWithRequest:delegate:");
-	[request dumpDetail];
-
+	postSendingRequestNotification;
 	InspectedConnectionDelegate *inspectedDelegate = [[InspectedConnectionDelegate alloc] initWithActualDelegate:delegate];
 	[[NSURLConnection inspectedDelegates] addObject:inspectedDelegate];
-
 	return [NSURLConnection inspected_connectionWithRequest:request delegate:inspectedDelegate];
 }
 
 + (void)inspected_sendAsynchronousRequest:(NSURLRequest *)request queue:(NSOperationQueue *)queue completionHandler:(void (^)(NSURLResponse*, NSData*, NSError*))handler
 {
-	NSLog(@"NSURLConnection (Inspected) : sendAsynchronousRequest:queue:completionHandler:");
-	[request dumpDetail];
+	postSendingRequestNotification;
 	[NSURLConnection inspected_sendAsynchronousRequest:request queue:queue completionHandler:handler];
 }
 
@@ -210,17 +201,16 @@ static NSMutableSet *s_delegates = nil;
 
 - (id)inspected_initWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate
 {
-	NSLog(@"NSURLConnection (Inspected) : initWithRequest:delegate:");
-	[request dumpDetail];
+	postSendingRequestNotification;
 	return [self inspected_initWithRequest:request delegate:delegate];
 }
 
 - (id)inspected_initWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate startImmediately:(BOOL)startImmediately
 {
-	NSLog(@"NSURLConnection (Inspected) : initWithRequest:delegate:startImmediately:");
-	[request dumpDetail];
+	postSendingRequestNotification;
 	return [self inspected_initWithRequest:request delegate:delegate startImmediately:startImmediately];
 }
+#undef postSendingRequestNotification
 
 // ------------------------------------------------------------------------
 #pragma mark -

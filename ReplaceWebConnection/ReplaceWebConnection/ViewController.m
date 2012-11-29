@@ -54,6 +54,10 @@
 - (void)viewDidLoad
 {
     [super viewDidLoad];
+
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(sendingRequest:) name:k_SENDING_REQUEST object:nil];
+	[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(receivedResponse:) name:k_RECEIVED_RESPONSE object:nil];
+
 	self.inspectionEnabled = NO;
 	self.inspectionEnabledLabel.text = @"Disabled";
 }
@@ -73,6 +77,78 @@
 
 - (IBAction)runTest:(id)sender {
 	[self test];
+}
+
+@end
+
+/**
+ * NSURLRequest category for inspection
+ */
+@implementation NSURLRequest (Inspect)
+
+- (NSString *) inspect
+{
+	NSString *detail = @"NSURLRequest detail: {\n";
+	detail = [detail stringByAppendingFormat:@"     URL: %@\n", self.URL];
+	detail = [detail stringByAppendingFormat:@"  Method: %@\n", self.HTTPMethod];
+	if (self.HTTPBody && [self.HTTPBody length] > 0) {
+		NSString *bodyString = [[NSString alloc] initWithData:self.HTTPBody encoding:NSUTF8StringEncoding];
+		if (bodyString)
+			detail = [detail stringByAppendingFormat:@"    Body: %@\n", bodyString];
+	}
+	detail = [detail stringByAppendingString:@"}"];
+	NSLog(@"%@", detail);
+	return detail;
+}
+
+@end
+
+/**
+ * NSHTTPURLResponse category for inspection
+ */
+@implementation NSHTTPURLResponse (Inspect)
+
+- (NSString *) inspect:(NSData *)body error:(NSError *)error
+{
+	NSString *detail = @"NSHTTPURLResponse detail: {\n";
+	detail = [detail stringByAppendingFormat:@"     URL: %@\n", self.URL];
+	detail = [detail stringByAppendingFormat:@"  status: %d\n", self.statusCode];
+	if (body && [body length] > 0) {
+		NSString *bodyString = [[NSString alloc] initWithData:body encoding:NSUTF8StringEncoding];
+		if (bodyString)
+			detail = [detail stringByAppendingFormat:@"    Body: %@\n", bodyString];
+	}
+	if (error)
+		detail = [detail stringByAppendingFormat:@"   Error: %@\n", error];
+	detail = [detail stringByAppendingString:@"}"];
+	NSLog(@"%@", detail);
+	return detail;
+}
+
+@end
+
+
+@implementation ViewController (Observer)
+
+- (void) sendingRequest:(NSNotification *)notification
+{
+	NSDictionary *userInfo = notification.userInfo;
+	NSURLRequest *request = userInfo[@"request"];
+	NSLog(@"[Observer:sendingRequest:]: dumping request");
+	[request inspect];
+}
+
+- (void) receivedResponse:(NSNotification *)notification
+{
+	NSDictionary *userInfo = notification.userInfo;
+	NSHTTPURLResponse *response = userInfo[@"response"];
+	NSData *responseBody = userInfo[@"body"];
+	NSError *error = userInfo[@"error"];
+
+	if (response) {
+		NSLog(@"[Observer:receivedResponse:]: dumping response");
+		[response inspect:responseBody error:error];
+	}
 }
 
 @end
