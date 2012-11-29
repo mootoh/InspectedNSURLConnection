@@ -183,14 +183,13 @@ static NSMutableSet *s_delegates = nil;
 
 + (NSURLConnection *)inspected_connectionWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate
 {
-	postSendingRequestNotification;
-	InspectedConnectionDelegate *inspectedDelegate = [[InspectedConnectionDelegate alloc] initWithActualDelegate:delegate];
-	[[NSURLConnection inspectedDelegates] addObject:inspectedDelegate];
-	return [NSURLConnection inspected_connectionWithRequest:request delegate:inspectedDelegate];
+	// connectionWithRequest:delegate calls initWithRequest:delegate internally, so no need to proxy the delegate.
+	return [NSURLConnection inspected_connectionWithRequest:request delegate:delegate];
 }
 
 + (void)inspected_sendAsynchronousRequest:(NSURLRequest *)request queue:(NSOperationQueue *)queue completionHandler:(void (^)(NSURLResponse*, NSData*, NSError*))handler
 {
+//	NSLog(@"inspected_sendAsynchronousRequest");
 	postSendingRequestNotification;
 	[NSURLConnection inspected_sendAsynchronousRequest:request queue:queue completionHandler:handler];
 }
@@ -202,13 +201,17 @@ static NSMutableSet *s_delegates = nil;
 - (id)inspected_initWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate
 {
 	postSendingRequestNotification;
-	return [self inspected_initWithRequest:request delegate:delegate];
+	InspectedConnectionDelegate *inspectedDelegate = [[InspectedConnectionDelegate alloc] initWithActualDelegate:delegate];
+	[[NSURLConnection inspectedDelegates] addObject:inspectedDelegate];
+	return [self inspected_initWithRequest:request delegate:inspectedDelegate];
 }
 
 - (id)inspected_initWithRequest:(NSURLRequest *)request delegate:(id < NSURLConnectionDelegate >)delegate startImmediately:(BOOL)startImmediately
 {
 	postSendingRequestNotification;
-	return [self inspected_initWithRequest:request delegate:delegate startImmediately:startImmediately];
+	InspectedConnectionDelegate *inspectedDelegate = [[InspectedConnectionDelegate alloc] initWithActualDelegate:delegate];
+	[[NSURLConnection inspectedDelegates] addObject:inspectedDelegate];
+	return [self inspected_initWithRequest:request delegate:inspectedDelegate startImmediately:startImmediately];
 }
 #undef postSendingRequestNotification
 
