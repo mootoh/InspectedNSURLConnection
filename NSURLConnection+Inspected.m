@@ -41,8 +41,10 @@ static NSMutableSet *s_delegates = nil;
 {
 	self = [super init];
 	if (self) {
-		self.actualDelegate = actual;
 		self.received = [[NSMutableData alloc] init];
+		[self.received setLength:0];
+		self.actualDelegate = actual;
+		self.response = nil;
 	}
 	return self;
 }
@@ -52,13 +54,15 @@ static NSMutableSet *s_delegates = nil;
 	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
 	if (self.response)
 		userInfo[@"response"] = self.response;
-	if (self.received && self.received.length > 0)
+	if (self.received.length > 0)
 		userInfo[@"body"] = self.received;
 	if (error)
 		userInfo[@"error"] = error;
 
 	[[NSNotificationCenter defaultCenter] postNotificationName:k_RECEIVED_RESPONSE object:nil userInfo:userInfo];
 
+	self.response = nil;
+	self.received = nil;
 	self.actualDelegate = nil;
 	[[NSURLConnection inspectedDelegates] removeObject:self];
 }
@@ -171,7 +175,7 @@ static NSMutableSet *s_delegates = nil;
 	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
 	if (*response)
 		userInfo[@"response"] = *response;
-	if (responseData)
+	if (responseData && responseData.length > 0)
 		userInfo[@"body"] = responseData;
 	if (*error)
 		userInfo[@"error"] = *error;
