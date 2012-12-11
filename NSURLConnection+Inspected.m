@@ -124,6 +124,7 @@ static NSMutableSet *s_delegates = nil;
 - (NSURLRequest *)connection:(NSURLConnection *)connection willSendRequest:(NSURLRequest *)request redirectResponse:(NSURLResponse *)redirectResponse
 {
 	NSLog(@"[InspectedConnectionDelegate:%@]: connection:willSendRequest:redirectResponse:", connection.originalRequest.URL);
+	self.response = redirectResponse; // replace the response object with redirected one.
 
 	if ([self.actualDelegate respondsToSelector:@selector(connection:willSendRequest:redirectResponse:)]) {
 		id <NSURLConnectionDataDelegate> actual = (id <NSURLConnectionDataDelegate>)self.actualDelegate;
