@@ -53,11 +53,11 @@ static NSMutableSet *s_delegates = nil;
 {
 	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
 	if (self.response)
-		userInfo[@"response"] = self.response;
+		[userInfo setObject:self.response forKey:@"response"];
 	if (self.received.length > 0)
-		userInfo[@"body"] = self.received;
+		[userInfo setObject:self.received forKey:@"body"];
 	if (error)
-		userInfo[@"error"] = error;
+		[userInfo setObject:error forKey:@"error"];
 
 	[[NSNotificationCenter defaultCenter] postNotificationName:k_RECEIVED_RESPONSE object:nil userInfo:userInfo];
 
@@ -165,7 +165,7 @@ static NSMutableSet *s_delegates = nil;
 #pragma mark Class method swizzling
 //
 
-#define postSendingRequestNotification [[NSNotificationCenter defaultCenter] postNotificationName:k_SENDING_REQUEST object:nil userInfo:@{@"request" : request}]
+#define postSendingRequestNotification [[NSNotificationCenter defaultCenter] postNotificationName:k_SENDING_REQUEST object:nil userInfo:[NSDictionary dictionaryWithObject:request forKey:@"request"]]
 
 + (NSData *)inspected_sendSynchronousRequest:(NSURLRequest *)request returningResponse:(NSURLResponse **)response error:(NSError **)error
 {
@@ -175,11 +175,11 @@ static NSMutableSet *s_delegates = nil;
 
 	NSMutableDictionary *userInfo = [NSMutableDictionary dictionary];
 	if (*response)
-		userInfo[@"response"] = *response;
+		[userInfo setObject:*response forKey:@"response"];
 	if (responseData && responseData.length > 0)
-		userInfo[@"body"] = responseData;
+		[userInfo setObject:responseData forKey:@"body"];
 	if (*error)
-		userInfo[@"error"] = *error;
+		[userInfo setObject:*error forKey:@"error"];
 
 	[[NSNotificationCenter defaultCenter] postNotificationName:k_RECEIVED_RESPONSE object:nil userInfo:userInfo];
 
